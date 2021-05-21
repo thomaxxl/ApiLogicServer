@@ -4,12 +4,6 @@ import argparse
 import io
 import sys
 
-"""  FIXME remove
-import logic_bank_utils.util as logic_bank_utils
-(did_fix_path, sys_env_info) = \
-    logic_bank_utils.add_python_path(project_dir="ApiLogicServer", my_file=__file__)
-"""
-
 import pkg_resources
 from sqlalchemy.engine import create_engine
 from sqlalchemy.schema import MetaData
@@ -36,33 +30,34 @@ def main(calling_args=None):
         args = parser.parse_args()
 
     if args.version:
-        version = pkg_resources.get_distribution("sqlacodegen").parsed_version
+        version = pkg_resources.get_distribution('sqlacodegen').parsed_version
         print(version.public)
         return
     if not args.url:
-        print("You must supply a url\n", file=sys.stderr)
+        print('You must supply a url\n', file=sys.stderr)
         parser.print_help()
         return
 
     # Use reflection to fill in the metadata
     engine = create_engine(args.url)
     try:
-        # dirty hack for sqlite
+        # dirty hack for sqlite  TODO review ApiLogicServer
         engine.execute("""PRAGMA journal_mode = OFF""")
     except:
         pass
     metadata = MetaData(engine)
-    tables = args.tables.split(",") if args.tables else None
+    tables = args.tables.split(',') if args.tables else None
     metadata.reflect(engine, args.schema, not args.noviews, tables)
 
     # Write the generated model code to the specified file or standard output
-    outfile = io.open(args.outfile, "w", encoding="utf-8") if args.outfile else sys.stdout
-    generator = CodeGenerator(metadata, args.noindexes, args.noconstraints, args.nojoined, args.noinflect, args.noclasses)
+    outfile = io.open(args.outfile, 'w', encoding='utf-8') if args.outfile else sys.stdout
+    generator = CodeGenerator(metadata, args.noindexes, args.noconstraints, args.nojoined,
+                              args.noinflect, args.noclasses, nocomments=args.nocomments)
     generator.render(outfile)
 
 
 class DotDict(dict):
-    """dot.notation access to dictionary attributes"""
+    """ APiLogicServer dot.notation access to dictionary attributes """
     # thanks: https://stackoverflow.com/questions/2352181/how-to-use-a-dot-to-access-members-of-dictionary/28463329
     __getattr__ = dict.get
     __setattr__ = dict.__setitem__
@@ -70,6 +65,7 @@ class DotDict(dict):
 
 
 def sqlacodegen(db_url: str, models_file: str):
+    """ ApiLogicServer entry for in-process invocation """
     calling_args = DotDict({})
     calling_args.url = db_url
     calling_args.outfile = models_file
